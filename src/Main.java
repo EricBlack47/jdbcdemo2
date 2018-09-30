@@ -14,7 +14,8 @@ public class Main {
         String sql="insert into userinfo(customerID,customerName,PID,telephone,address) values(?,?,?,?,?)";
         dao.update(sql,5,"猪八戒","123","110","高老庄");*/
 
-        List<Map<String,Object>> user=dao.query("select * from userinfo");
+        //List<Map<String,Object>> user=dao.query("select * from userinfo");
+        List<Map<String,Object>> user=dao.query("select * from userinfo where customerID=?",2);
         for (Map u:user){
             System.out.println(u);
         }
