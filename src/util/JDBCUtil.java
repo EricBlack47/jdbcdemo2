@@ -1,5 +1,7 @@
 package util;
 
+import org.apache.commons.dbcp.BasicDataSource;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.*;
@@ -25,21 +27,27 @@ public class JDBCUtil {
             url=properties.getProperty("url");
             user=properties.getProperty("user");
             password=properties.getProperty("password");
-            Class.forName(driver);
-            con= DriverManager.getConnection(url,user,password);
+            BasicDataSource ds=new BasicDataSource();
+            ds.setDriverClassName(driver);
+            ds.setUsername(user);
+            ds.setPassword(password);
+            ds.setUrl(url);
+            ds.setInitialSize(10);
+            ds.setMaxActive(20);
+            ds.setMinIdle(5);
         } catch (IOException e) {
             e.printStackTrace();
             System.out.println("读取配置文件错误");
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-            System.out.println("无法加载驱动");
-        } catch (SQLException e) {
-            e.printStackTrace();
-            System.out.println("连接失败");
         }
     }
 
     public static Connection getConnection(){
+        BasicDataSource ds=new BasicDataSource();
+        try {
+            return ds.getConnection();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
         try {
             if (con==null||con.isClosed())
                 con=DriverManager.getConnection(url,user,password);

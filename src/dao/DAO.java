@@ -1,8 +1,12 @@
 package dao;
 
-import jdk.nashorn.api.tree.ReturnTree;
+
+import annotation.Id;
+import annotation.Table;
 import util.JDBCUtil;
 
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Field;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -32,6 +36,7 @@ public class DAO {
         Connection con=JDBCUtil.getConnection();
         try {
             PreparedStatement pstm=con.prepareStatement(sql);
+            if(param!=null)
             for (int i=0;i<param.length;i++){
                 pstm.setObject(i+1,param[i]);
             }
@@ -41,7 +46,28 @@ public class DAO {
             e.printStackTrace();
         }
         return null;
+    }
 
+    public <T>List<T> query(Class<T> cClass,String sql,Object...param){
+        List<Map<String,Object>> mapList=query(sql,param);
+        if (mapList.size()<=0) return null;
+        List<T> olist=new ArrayList<>();
+        for (Map<String,Object> row:mapList){
+            try {
+                T bean=cClass.newInstance();
+                for (Map.Entry entry:row.entrySet()){
+                    String key= (String) entry.getKey();
+                    Object value=entry.getValue();
+                    Field field=cClass.getDeclaredField(key);
+                    field.setAccessible(true);
+                    field.set(bean,value);
+                }
+                olist.add(bean);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        return olist;
     }
 
     private List<Map<String,Object>> resultSetToMap(ResultSet rs){
@@ -62,7 +88,6 @@ public class DAO {
         return result;
     }
 
-
     private List<String> getColumnName(ResultSet rs){
         List<String> names=new ArrayList<>();
         try {
@@ -74,6 +99,29 @@ public class DAO {
             e.printStackTrace();
         }
         return names;
+    }
+
+
+    public <T> T get(Class<T> tClass,Object id){
+        Annotation an=tClass.getAnnotation(Table.class);
+        Field[] fields=tClass.getDeclaredFields();
+        String customerID=null;
+        for (Field field:fields){
+            Annotation annotation=field.getAnnotation(Id.class);
+            if (annotation != null) {
+                customerID=field.getName();
+            }
+            if (customerID==null){
+                System.out.println("没有设置主键");
+                return null;
+            }
+            String sql="select * from "+(((Table) an).name()+" where "+customerID+"=?");
+            List<T> result=query(tClass,sql,id);
+            System.out.println("sql=>"+sql);
+            if (result!=null&&result.size()>0)
+                return result.get(0);
+        }
+        return null;
     }
 
 }
